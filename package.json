@@ -19,6 +19,7 @@
     "lodash": "^4.17.21",
     "vue": "^3.2.13",
     "vue-class-component": "^8.0.0-0",
+    "vue-progress-bar": "^1.0.1",
     "vue-router": "^4.0.3",
     "vuex": "^4.0.0"
   },

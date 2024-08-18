@@ -1,11 +1,12 @@
 <template>
-  <v-container class="py-6 px-4 text-center">
-    <v-card class="mx-auto mt-4 main-card" max-width="100vw">
-      <v-card-title class="d-flex justify-center align-center" primary-title>
-        <h1 class="font-weight-thin">Trivia Quiz App</h1>
+  <v-container>
+    <HeaderSection />
+    <v-card class="main-card">
+      <v-card-title class="d-flex justify-center align-center">
+        <h1>Trivia Quiz App</h1>
       </v-card-title>
 
-      <v-card-subtitle class="mt-4 mb-4">
+      <v-card-subtitle class="mb-4">
         <h2 class="display-2">Setup Your Quiz</h2>
       </v-card-subtitle>
 
@@ -21,16 +22,14 @@
       </v-card-actions>
 
       <v-card-actions>
-        <v-select v-model="question_type" :items="itemOptions" item-value="value" item-title="label" label="Question Type" outlined dense class="modern-select"
-          hide-details></v-select>
+        <v-select v-model="question_type" :items="itemOptions" item-value="value" item-title="label"
+          label="Question Type" outlined dense class="modern-select" hide-details></v-select>
       </v-card-actions>
 
       <v-card-actions class="pt-4 justify-end">
-        <v-btn elevation="6" :loading="loading5" color="black" class="ma-2 white--text submit-btn" variant="outlined"
-          :disabled="!validated" @click="selected" large>
-          <router-link style="text-decoration: none; color: inherit;" to='/quiz'>
-            Start Game!
-          </router-link>
+        <v-btn elevation="4" :loading="loading5" color="white" class="ma-2 white--text submit-btn" variant="outlined"
+          :disabled="!validated" @click="startGame" large>
+          Start Game!
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -39,12 +38,18 @@
 
 
 
-<style lang="scss">
+<style lang="scss" scoped>
 .main-card {
-  background-color: white;
-  border-radius: 12px;
+  width: 100vw;
+  min-height: 90vh;
+  margin: 0 !important;
+  background-color: rgb(14, 100, 53) !important;
+  color: rgb(255, 255, 255) !important;
+  font-weight: 500 !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 16px;
+  font-family: "Roboto Flex", sans-serif;
+  font-size-adjust: none;
+  padding: 8px !important;
 }
 
 .text-field {
@@ -69,7 +74,7 @@
 }
 
 .bg-teal-lighten-5 {
-  background-color: #e3f2fd; 
+  background-color: #e3f2fd;
 }
 
 .rounded-lg {
@@ -100,11 +105,11 @@
 }
 </style>
 
-
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import HeaderSection from '../components/HeaderSection.vue'
 
 interface ItemOption {
   label: string;
@@ -116,27 +121,41 @@ const itemOptions: ItemOption[] = [
   { label: 'True or False', value: 'boolean' }
 ];
 
-const store = useStore();
-
-const question_length = ref('');
-const level = ref('');
-const question_type = ref('');
-const items = ['Multiple', 'True or False'];
-const selection = ref<string[]>([]);
-const loading5 = ref(false);
-
 const difficultyLevels = [
   { label: 'Easy', value: 'easy' },
   { label: 'Medium', value: 'medium' },
   { label: 'Hard', value: 'hard' }
 ];
 
+const store = useStore();
+const router = useRouter();
+
+const question_length = ref('');
+const level = ref('');
+const question_type = ref('');
+const selection = ref<string[]>([]);
+const loading5 = ref(false);
 const validated = computed(() => question_type.value !== '' && Number(question_length.value) >= 5 && level.value !== '');
 
 function selected() {
-
   selection.value.push(question_length.value, level.value, question_type.value);
   store.commit("getData", selection.value);
-  console.log('selected', selection.value);
+}
+
+async function startGame() {
+  if (!validated.value) return;
+
+  loading5.value = true;
+  selection.value.push(question_length.value, level.value, question_type.value);
+  store.commit("getData", selection.value);
+
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await router.push('/quiz');
+  } catch (error) {
+    console.error('Navigation error:', error);
+  } finally {
+    loading5.value = false;
+  }
 }
 </script>
