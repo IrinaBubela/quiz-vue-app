@@ -1,11 +1,12 @@
 <template>
-  <v-container class="py-6 px-4 text-center">
-    <v-card class="mx-auto mt-4 main-card" max-width="100vw">
-      <v-card-title class="d-flex justify-center align-center" primary-title>
-        <h1 class="font-weight-thin">Trivia Quiz App</h1>
+  <v-container>
+    <HeaderSection />
+    <v-card class="main-card">
+      <v-card-title class="d-flex justify-center align-center">
+        <h1>Trivia Quiz App</h1>
       </v-card-title>
 
-      <v-card-subtitle class="mt-4 mb-4">
+      <v-card-subtitle class="mb-4">
         <h2 class="display-2">Setup Your Quiz</h2>
       </v-card-subtitle>
 
@@ -26,23 +27,29 @@
       </v-card-actions>
 
       <v-card-actions class="pt-4 justify-end">
-        <v-btn elevation="6" :loading="loading5" color="black" class="ma-2 white--text submit-btn" variant="outlined"
+        <v-btn elevation="4" :loading="loading5" color="white" class="ma-2 white--text submit-btn" variant="outlined"
           :disabled="!validated" @click="startGame" large>
           Start Game!
         </v-btn>
-        </v-card-actions>
+      </v-card-actions>
     </v-card>
   </v-container>
 </template>
 
 
 
-<style lang="scss">
+<style lang="scss" scoped>
 .main-card {
-  background-color: white;
-  border-radius: 12px;
+  width: 100vw;
+  min-height: 90vh;
+  margin: 0 !important;
+  background-color: rgb(14, 100, 53) !important;
+  color: rgb(255, 255, 255) !important;
+  font-weight: 500 !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 16px;
+  font-family: "Roboto Flex", sans-serif;
+  font-size-adjust: none;
+  padding: 8px !important;
 }
 
 .text-field {
@@ -102,6 +109,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
+import HeaderSection from '../components/HeaderSection.vue'
 
 interface ItemOption {
   label: string;

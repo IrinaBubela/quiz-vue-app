@@ -8,6 +8,7 @@ export default createStore({
       total: 0
     },
     quizArr: [],
+    timeSpent: [],
   },
   getters: {
   },
@@ -16,11 +17,12 @@ export default createStore({
       state.data = '',
         state.data += newData;
     },
-    updateResults(state, { score, total }) {
+    updateResults(state, { score, total, timeSpent }) {
       state.results = {
         score,
         total
       };
+      state.timeSpent = timeSpent; 
     },
     setQuizArr(state, payload) {
       state.quizArr = payload;

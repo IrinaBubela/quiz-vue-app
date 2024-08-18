@@ -1,47 +1,52 @@
 <template>
-  <v-card class="mx-auto mt-5" max-width="800" elevation="4">
-    <v-card-title primary-title class="justify-center rounded-card mb-1">
-      <h1 class="font-weight-thin">Multiple Choice Quiz</h1>
-    </v-card-title>
-    <v-card-text primary-title class="pt-2">
-      <p>Question no. {{ currentIndex + 1 }}</p>
-      <v-progress-linear class="mt-2" color="cyan-darken-2" v-model="progress" height="25">
-        <template v-slot:default="{ value }">
-          <strong>{{ Math.ceil(value) }}%</strong>
-        </template>
-      </v-progress-linear>
-    </v-card-text>
-    <v-spacer></v-spacer>
-    <v-card>
-      <v-card-text v-if="loading">
-        <h4 class="justify-center font-italic">Loading...</h4>
-      </v-card-text>
-      <v-card-text v-else>
-        <h4 class="justify-center font-italic">{{ currentQuestion }}</h4>
+  <v-container>
+    <HeaderSection />
+    <v-card class="quiz-card">
+      <v-card-title primary-title class="justify-center rounded-card mb-1">
+        <h3>Multiple Choice Quiz</h3>
+      </v-card-title>
+      <v-card-text primary-title class="pt-2">
+        <p>Question no. {{ currentIndex + 1 }}</p>
+        <v-progress-linear class="mt-2 progress-bar" v-model="progress" height="25">
+          <template v-slot:default="{ value }">
+            <strong>{{ Math.ceil(value) }}%</strong>
+          </template>
+        </v-progress-linear>
       </v-card-text>
       <v-spacer></v-spacer>
-      <v-card-actions>
-        <v-radio-group v-model="answered" @change="saveAnswer">
-          <v-radio v-for="n in shuffledAnswers" :key="n" :label="n" :value="n"></v-radio>
-        </v-radio-group>
+      <div>
+        <v-card-text v-if="loading">
+          <h2 class="justify-center font-italic">Loading...</h2>
+        </v-card-text>
+        <v-card-text v-else>
+          <h2 class="justify-center font-italic">{{ currentQuestion }}</h2>
+        </v-card-text>
+        <v-spacer></v-spacer>
+        <v-card-actions>
+          <v-radio-group v-model="answered" @change="saveAnswer">
+            <v-radio v-for="n in shuffledAnswers" :key="n" :label="n" :value="n"></v-radio>
+          </v-radio-group>
+        </v-card-actions>
+      </div>
+      <v-card-actions class="d-flex justify-center">
+        <div class="btns">
+          <v-btn @click="previous" elevation="4" color="grey lighten-1" size="large">Previous</v-btn>
+          <v-btn @click="exit" elevation="4" color="black" size="large">Exit</v-btn>
+          <v-btn @click="next" elevation="4" class="next-btn" size="large">Next</v-btn>
+        </div>
       </v-card-actions>
     </v-card>
-    <v-card-actions class="d-flex justify-space-around">
-      <v-btn @click="previous" elevation="2" color="grey lighten-1" size="x-large">Previous</v-btn>
-      <v-btn @click="exit" elevation="2" color="black" size="x-large">Exit</v-btn>
-      <v-btn @click="next" elevation="2" color="cyan-darken-2" size="x-large">Next</v-btn>
-    </v-card-actions>
-  </v-card>
+  </v-container>
 </template>
 
-
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import _ from 'lodash';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { defineProps } from 'vue';
+import HeaderSection from '../components/HeaderSection.vue'
 
 const props = defineProps<{
   quizArr: string[];
@@ -56,7 +61,9 @@ const answered = ref<string | null>(null);
 const correctAnswer = ref<string | null>(null);
 const shuffledAnswers = ref<string[]>([]);
 const correct = ref(0);
-const answers = ref<string[]>([]); // To track answers for each question
+const answers = ref<string[]>([]);
+const timeSpent = ref<number[]>([]);
+const startTime = ref<number | null>(null);
 
 const router = useRouter();
 const store = useStore();
@@ -85,6 +92,9 @@ const getQuestion = () => {
     loading.value = false;
     getChoices();
     answered.value = answers.value[currentIndex.value] || null;
+
+    //start timing
+    startTime.value = Date.now();
   }
 };
 
@@ -110,6 +120,12 @@ const answerClass = () => {
 const saveAnswer = () => {
   if (answered.value !== null) {
     answers.value[currentIndex.value] = String(answered.value);
+    //tracking time
+    if (startTime.value) {
+      const endTime = Date.now();
+      const time = endTime - startTime.value;
+      timeSpent.value[currentIndex.value] = time;
+    }
   }
 };
 
@@ -123,7 +139,8 @@ const next = () => {
   if (currentIndex.value >= parseInt(props.quizArr[0]) - 1) {
     store.commit("updateResults", {
       score: correct.value,
-      total: parseInt(props.quizArr[0])
+      total: parseInt(props.quizArr[0]),
+      timeSpent: timeSpent.value
     });
     router.push("/result");
   } else {
@@ -160,4 +177,57 @@ onMounted(async () => {
   await getAPIquestions();
   getQuestion();
 });
+
+onBeforeUnmount(() => {
+  saveAnswer();
+});
 </script>
+
+<style lang="scss" scoped>
+.v-container {
+  width: 100vw;
+  padding: 0px !important;
+  margin: 0 !important;
+}
+
+.v-card {
+  min-height: 90vh !important;
+}
+
+.quiz-card {
+  max-width: 100vw;
+  min-width: 100vw;
+  padding: 16px !important;
+  margin: 0 !important;
+}
+
+h3 {
+  color: rgb(14, 100, 53);
+}
+
+.v-card-actions {
+  width: 100vw;
+}
+
+.btns {
+  display: flex;
+  justify-content: space-around;
+  width: 30vw;
+}
+
+.progress-bar {
+  color: rgb(14, 100, 53);
+}
+
+.v-progress-linear__background {
+  background: black;
+}
+
+.v-progress-linear__content strong{
+  color: white !important;
+}
+
+.next-btn {
+  color: rgb(14, 100, 53);
+}
+</style>
