@@ -1,48 +1,40 @@
 <template>
-    <v-container class="py-6 py-lg-12 text-center">
-      <h3 class="text-h4 mt-10">
-        Congratulations!
-        <br/>
-        You finished the game with the score:
-      </h3>
-      <h2 class="text-h6 text-sm-h5 secondary--text mt-4 w-full w-md-8-12 w-xl-half mx-auto">
-        {{ results[1] }} of {{ results[0] }}. You got {{ percent }}% correct.
-      </h2>
-      <div class="mt-4">
-        <v-btn x-large class="my-1 mx-sm-1 w-full w-sm-auto" color="black" @click="newGame">
-          Play Again
-        </v-btn>
-      </div>
-    </v-container>
-  </template>
-  
-  <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useStore } from 'vuex';
-  
-  const router = useRouter();
-  const store = useStore();
-  
-  const results = ref<number[]>([]);
-  const percent = ref<number | null>(null);
-  
-  const calculatePercentage = (numA: number, numB: number) => {
-    return Math.round((numA / numB) * 100);
-  };
-  
-  const newGame = () => {
-    router.push('/');
-  };
-  
-  onMounted(() => {
-    const quizType = store.state.data;
-    const resultsData = store.state.results;
-    const quizArr = quizType.split(",");
-    console.log(quizArr, resultsData);
-    
-    results.value = [parseInt(quizArr[0]), resultsData];
-    percent.value = calculatePercentage(results.value[1], results.value[0]);
-  });
-  </script>
-  
+  <v-card elevation="4">
+    <v-card-title primary-title class="rounded-card mb-1">
+      <h1 class="font-weight-thin">Quiz Results</h1>
+    </v-card-title>
+    <v-card-text class="text-center">
+      <h2 class="display-1">Congratulations!</h2>
+      <p>You finished the game with a score of:</p>
+      <h3>{{ score }} of {{ total }}</h3>
+      <h4>You got {{ percentage }}% correct!</h4>
+    </v-card-text>
+    <v-card-actions class="justify-center">
+      <v-btn @click="retry" color="cyan-darken-2">Retry Quiz</v-btn>
+      <v-btn @click="goHome" color="black">Go Home</v-btn>
+    </v-card-actions>
+  </v-card>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+
+const store = useStore();
+const router = useRouter();
+
+const results = store.state.results;
+const score = results.score;
+const total = results.total;
+const percentage = computed(() => (total > 0 ? (score / total) * 100 : 0).toFixed(2));
+
+const retry = () => {
+  store.dispatch('resetQuiz');
+  router.push("/");
+};
+
+const goHome = () => {
+  router.push("/");
+};
+</script>
