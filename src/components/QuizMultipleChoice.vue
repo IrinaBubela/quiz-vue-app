@@ -14,20 +14,18 @@
         </v-progress-linear>
       </v-card-text>
       <v-spacer></v-spacer>
-      <div>
-        <v-card-text v-if="loading">
-          <h2 class="justify-center font-italic">Loading...</h2>
-        </v-card-text>
-        <v-card-text v-else>
-          <h2 class="justify-center font-italic">{{ currentQuestion }}</h2>
-        </v-card-text>
-        <v-spacer></v-spacer>
-        <v-card-actions>
-          <v-radio-group v-model="answered" @change="saveAnswer">
-            <v-radio v-for="n in shuffledAnswers" :key="n" :label="n" :value="n"></v-radio>
-          </v-radio-group>
-        </v-card-actions>
-      </div>
+      <v-card-text v-if="loading">
+        <h2 class="justify-center font-italic">Loading...</h2>
+      </v-card-text>
+      <v-card-text v-else>
+        <h2 class="justify-center font-italic">{{ currentQuestion }}</h2>
+      </v-card-text>
+      <v-spacer></v-spacer>
+      <v-card-actions>
+        <v-radio-group v-model="answered" @change="saveAnswer">
+          <v-radio v-for="n in shuffledAnswers" :key="n" :label="n" :value="n"></v-radio>
+        </v-radio-group>
+      </v-card-actions>
       <v-card-actions class="d-flex justify-center">
         <div class="btns">
           <v-btn @click="previous" elevation="4" color="grey lighten-1" size="large">Previous</v-btn>
@@ -46,7 +44,7 @@ import _ from 'lodash';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import { defineProps } from 'vue';
-import HeaderSection from '../components/HeaderSection.vue'
+import HeaderSection from '../components/HeaderSection.vue';
 
 const props = defineProps<{
   quizArr: string[];
@@ -68,50 +66,48 @@ const startTime = ref<number | null>(null);
 const router = useRouter();
 const store = useStore();
 
-const getAPIquestions = async () => {
+const fetchQuestions = async () => {
   const link = 'https://opentdb.com/api.php?';
   const typeOption = props.quizArr[2].toLowerCase();
-  const quiz = `amount=${props.quizArr[0]}&difficulty=${props.quizArr[1]}&type=${typeOption}`;
-  const url = link.concat(quiz);
+  const query = `amount=${props.quizArr[0]}&difficulty=${props.quizArr[1]}&type=${typeOption}`;
+  const url = `${link}${query}`;
+  
   try {
     const response = await axios.get(url);
     questions.value = response.data;
     updateProgress();
     loading.value = false;
-  } catch (err) {
-    console.error("Server Error:", err);
+  } catch (error) {
+    console.error("Server Error:", error);
   }
 };
 
-const getQuestion = () => {
+const updateQuestion = () => {
   if (questions.value && questions.value.results[currentIndex.value]) {
-    const question = questions.value.results[currentIndex.value].question;
-    currentQuestion.value = question
+    const questionData = questions.value.results[currentIndex.value];
+    currentQuestion.value = questionData.question
       .replace(/(&quot;)/g, " ")
       .replace(/(&#039;)/g, "'");
     loading.value = false;
-    getChoices();
+    updateChoices();
     answered.value = answers.value[currentIndex.value] || null;
-
-    //start timing
-    startTime.value = Date.now();
+    startTime.value = Date.now(); 
   }
 };
 
-const getChoices = () => {
+const updateChoices = () => {
   if (questions.value && questions.value.results[currentIndex.value]) {
     const result = questions.value.results[currentIndex.value];
     correctAnswer.value = result.correct_answer;
-    const answersList = [...result.incorrect_answers, result.correct_answer];
-    shuffledAnswers.value = _.shuffle(answersList.map(a =>
+    const allAnswers = [...result.incorrect_answers, result.correct_answer];
+    shuffledAnswers.value = _.shuffle(allAnswers.map(a =>
       a.replace(/(&quot;)/g, " ")
-        .replace(/(&#039;)/g, "'")
+       .replace(/(&#039;)/g, "'")
     ));
   }
 };
 
-const answerClass = () => {
-  if (!correctAnswer.value || !answered.value) return;
+const updateAnswerClass = () => {
   if (correctAnswer.value === answered.value) {
     correct.value++;
   }
@@ -120,22 +116,21 @@ const answerClass = () => {
 const saveAnswer = () => {
   if (answered.value !== null) {
     answers.value[currentIndex.value] = String(answered.value);
-    //tracking time
     if (startTime.value) {
-      const endTime = Date.now();
-      const time = endTime - startTime.value;
-      timeSpent.value[currentIndex.value] = time;
+      const elapsedTime = Date.now() - startTime.value;
+      timeSpent.value[currentIndex.value] = elapsedTime;
     }
   }
 };
 
 const next = () => {
   if (!answered.value) {
-    alert("You haven't selected a value");
+    alert("You haven't selected an answer");
     return;
   }
   saveAnswer();
-  answerClass();
+  updateAnswerClass();
+
   if (currentIndex.value >= parseInt(props.quizArr[0]) - 1) {
     store.commit("updateResults", {
       score: correct.value,
@@ -145,7 +140,7 @@ const next = () => {
     router.push("/result");
   } else {
     currentIndex.value++;
-    getQuestion();
+    updateQuestion();
     updateProgress();
   }
 };
@@ -154,14 +149,15 @@ const previous = () => {
   saveAnswer();
   if (currentIndex.value > 0) {
     currentIndex.value--;
-    getQuestion();
+    updateQuestion();
     updateProgress();
   }
 };
 
 const updateProgress = () => {
-  if (!questions.value || questions.value.results.length === 0) return;
-  progress.value = ((currentIndex.value + 1) / questions.value.results.length) * 100;
+  if (questions.value && questions.value.results.length > 0) {
+    progress.value = ((currentIndex.value + 1) / questions.value.results.length) * 100;
+  }
 };
 
 const exit = () => {
@@ -169,13 +165,11 @@ const exit = () => {
   router.push("/");
 };
 
-watch([currentIndex, answered], () => {
-  saveAnswer();
-});
+watch([currentIndex, answered], saveAnswer);
 
 onMounted(async () => {
-  await getAPIquestions();
-  getQuestion();
+  await fetchQuestions();
+  updateQuestion();
 });
 
 onBeforeUnmount(() => {
@@ -186,7 +180,7 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .v-container {
   width: 100vw;
-  padding: 0px !important;
+  padding: 0 !important;
   margin: 0 !important;
 }
 
@@ -223,7 +217,7 @@ h3 {
   background: black;
 }
 
-.v-progress-linear__content strong{
+.v-progress-linear__content strong {
   color: white !important;
 }
 

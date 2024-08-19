@@ -14,21 +14,19 @@
         </v-progress-linear>
       </v-card-text>
       <v-spacer></v-spacer>
-      <div>
-        <v-card-text v-if="loading">
-          <h2 class="justify-center font-italic">Loading...</h2>
-        </v-card-text>
-        <v-card-text v-else>
-          <h2 class="justify-center font-italic">{{ currentQuestion }}</h2>
-        </v-card-text>
-        <v-spacer></v-spacer>
-        <v-card-actions>
-          <v-radio-group v-model="answered" @change="saveAnswer">
-            <v-radio label="True" value="True"></v-radio>
-            <v-radio label="False" value="False"></v-radio>
-          </v-radio-group>
-        </v-card-actions>
-      </div>
+      <v-card-text v-if="loading">
+        <h2 class="justify-center font-italic">Loading...</h2>
+      </v-card-text>
+      <v-card-text v-else>
+        <h2 class="justify-center font-italic">{{ currentQuestion }}</h2>
+      </v-card-text>
+      <v-spacer></v-spacer>
+      <v-card-actions>
+        <v-radio-group v-model="answered" @change="saveAnswer">
+          <v-radio label="True" value="True"></v-radio>
+          <v-radio label="False" value="False"></v-radio>
+        </v-radio-group>
+      </v-card-actions>
       <v-card-actions class="d-flex justify-center">
         <div class="btns">
           <v-btn @click="previous" elevation="4" color="grey lighten-1" large>Previous</v-btn>
@@ -46,7 +44,7 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useStore as useVuexStore } from 'vuex';
 import { defineProps } from 'vue';
-import HeaderSection from '../components/HeaderSection.vue'
+import HeaderSection from '../components/HeaderSection.vue';
 
 const props = defineProps<{
   quizArr: string[];
@@ -61,49 +59,45 @@ const correctAnswer = ref<string | null>(null);
 const correct = ref(0);
 const progress = ref(0);
 const answers = ref<string[]>([]);
-
 const timeSpent = ref<number[]>([]);
 const startTime = ref<number | null>(null);
 
 const router = useRouter();
 const store = useVuexStore();
 
-const getAPIquestions = async () => {
+const fetchQuestions = async () => {
   const link = 'https://opentdb.com/api.php?';
   const typeOption = props.quizArr[2].toLowerCase();
-  const quiz = `amount=${props.quizArr[0]}&difficulty=${props.quizArr[1]}&type=${typeOption}`;
-  const url = link.concat(quiz);
+  const query = `amount=${props.quizArr[0]}&difficulty=${props.quizArr[1]}&type=${typeOption}`;
+  const url = `${link}${query}`;
+
   try {
     const response = await axios.get(url);
     questions.value = response.data;
     updateProgress();
     loading.value = false;
-  } catch (err) {
-    console.error("Server Error:", err);
+  } catch (error) {
+    console.error("Server Error:", error);
   }
 };
 
-const getQuestion = () => {
-  if (questions.value && questions.value.results.length > 0) {
-    const question = questions.value.results[currentIndex.value].question;
-    currentQuestion.value = question
-      .replace(/(&quot;)/g, " ")
-      .replace(/(&#039;)/g, "'");
+const updateQuestion = () => {
+  if (questions.value?.results.length) {
+    const questionData = questions.value.results[currentIndex.value];
+    currentQuestion.value = questionData.question
+      .replace(/(&quot;)|(&#039;)/g, " ");
     answered.value = answers.value[currentIndex.value] || null;
-
-    //start timing
     startTime.value = Date.now();
   }
 };
 
-const getCorrectAnswer = () => {
-  if (questions.value && questions.value.results.length > 0) {
+const updateCorrectAnswer = () => {
+  if (questions.value?.results.length) {
     correctAnswer.value = questions.value.results[currentIndex.value].correct_answer;
   }
 };
 
-const answerClass = () => {
-  if (!correctAnswer.value || !answered.value) return;
+const evaluateAnswer = () => {
   if (correctAnswer.value === answered.value) {
     correct.value++;
   }
@@ -114,7 +108,7 @@ const next = () => {
     alert("You didn't select a value");
     return;
   }
-  answerClass();
+  evaluateAnswer();
   saveAnswer();
   if (currentIndex.value >= parseInt(props.quizArr[0]) - 1) {
     store.commit("updateResults", {
@@ -125,7 +119,7 @@ const next = () => {
     router.push("/result");
   } else {
     currentIndex.value++;
-    getQuestion();
+    updateQuestion();
     updateProgress();
   }
 };
@@ -139,44 +133,40 @@ const previous = () => {
   saveAnswer();
   if (currentIndex.value > 0) {
     currentIndex.value--;
-    getQuestion();
+    updateQuestion();
     updateProgress();
   }
 };
 
 const updateProgress = () => {
-  if (!questions.value || questions.value.results.length === 0) return;
-  progress.value = ((currentIndex.value + 1) / questions.value.results.length) * 100;
+  if (questions.value?.results.length) {
+    progress.value = ((currentIndex.value + 1) / questions.value.results.length) * 100;
+  }
 };
 
 const saveAnswer = () => {
   if (answered.value !== null) {
     answers.value[currentIndex.value] = String(answered.value);
-    //tracking time
     if (startTime.value) {
       const endTime = Date.now();
-      const time = endTime - startTime.value;
-      timeSpent.value[currentIndex.value] = time;
+      timeSpent.value[currentIndex.value] = endTime - startTime.value;
     }
   }
 };
 
-
-watch([currentIndex, answered], () => {
-  saveAnswer();
-});
+watch([currentIndex, answered], saveAnswer);
 
 onMounted(async () => {
-  await getAPIquestions();
-  getQuestion();
-  getCorrectAnswer();
+  await fetchQuestions();
+  updateQuestion();
+  updateCorrectAnswer();
 });
 </script>
 
 <style lang="scss" scoped>
 .v-container {
   width: 100vw;
-  padding: 0px !important;
+  padding: 0 !important;
   margin: 0 !important;
 }
 
@@ -203,7 +193,7 @@ h3 {
   background: black;
 }
 
-.v-progress-linear__content strong{
+.v-progress-linear__content strong {
   color: white !important;
 }
 

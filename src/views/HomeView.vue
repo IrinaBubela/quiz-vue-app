@@ -11,32 +11,63 @@
       </v-card-subtitle>
 
       <v-card-actions>
-        <v-text-field v-model="question_length" name="question_length" type="number" class="text-field"
-          label="Number of Questions (min. 5)" min="5" step="1" outlined></v-text-field>
+        <v-text-field
+          v-model="questionLength"
+          name="questionLength"
+          type="number"
+          class="text-field"
+          label="Number of Questions (min. 5)"
+          min="5"
+          step="1"
+          outlined
+        ></v-text-field>
       </v-card-actions>
 
       <v-card-actions>
-        <v-select v-model="level" :items="difficultyLevels" item-value="value" item-title="label"
-          label="Select Difficulty Level" outlined dense class="modern-select" hide-details>
-        </v-select>
+        <v-select
+          v-model="difficultyLevel"
+          :items="difficultyLevels"
+          item-value="value"
+          item-title="label"
+          label="Select Difficulty Level"
+          outlined
+          dense
+          class="modern-select"
+          hide-details
+        ></v-select>
       </v-card-actions>
 
       <v-card-actions>
-        <v-select v-model="question_type" :items="itemOptions" item-value="value" item-title="label"
-          label="Question Type" outlined dense class="modern-select" hide-details></v-select>
+        <v-select
+          v-model="questionType"
+          :items="itemOptions"
+          item-value="value"
+          item-title="label"
+          label="Question Type"
+          outlined
+          dense
+          class="modern-select"
+          hide-details
+        ></v-select>
       </v-card-actions>
 
       <v-card-actions class="pt-4 justify-end">
-        <v-btn elevation="4" :loading="loading5" color="white" class="ma-2 white--text submit-btn" variant="outlined"
-          :disabled="!validated" @click="startGame" large>
+        <v-btn
+          elevation="4"
+          :loading="isLoading"
+          color="white"
+          class="ma-2 white--text submit-btn"
+          variant="outlined"
+          :disabled="!isValidated"
+          @click="startGame"
+          large
+        >
           Start Game!
         </v-btn>
       </v-card-actions>
     </v-card>
   </v-container>
 </template>
-
-
 
 <style lang="scss" scoped>
 .main-card {
@@ -57,19 +88,15 @@
 }
 
 .modern-select {
-  .v-select__selections {
-    background-color: #ffffff;
-    border: 1px solid #cccccc;
-    border-radius: 4px;
-  }
-
-  .v-select__slot {
-    border-radius: 4px;
-    border: 1px solid #cccccc;
-  }
-
+  .v-select__selections,
+  .v-select__slot,
   .v-select__control {
     border-radius: 4px;
+    border: 1px solid #cccccc;
+  }
+
+  .v-select__selections {
+    background-color: #ffffff;
   }
 }
 
@@ -96,11 +123,12 @@
   display: none !important;
 }
 
-.sumbit-btn {
-  background-color: black;
+.submit-btn {
+  background-color: rgb(14, 100, 53);
 
   &:hover {
-    background-color: white
+    background-color: white;
+    color: rgb(14, 100, 53) !important;
   }
 }
 </style>
@@ -109,7 +137,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
-import HeaderSection from '../components/HeaderSection.vue'
+import HeaderSection from '../components/HeaderSection.vue';
 
 interface ItemOption {
   label: string;
@@ -121,7 +149,7 @@ const itemOptions: ItemOption[] = [
   { label: 'True or False', value: 'boolean' }
 ];
 
-const difficultyLevels = [
+const difficultyLevels: ItemOption[] = [
   { label: 'Easy', value: 'easy' },
   { label: 'Medium', value: 'medium' },
   { label: 'Hard', value: 'hard' }
@@ -130,32 +158,41 @@ const difficultyLevels = [
 const store = useStore();
 const router = useRouter();
 
-const question_length = ref('');
-const level = ref('');
-const question_type = ref('');
-const selection = ref<string[]>([]);
-const loading5 = ref(false);
-const validated = computed(() => question_type.value !== '' && Number(question_length.value) >= 5 && level.value !== '');
+const questionLength = ref('');
+const difficultyLevel = ref('');
+const questionType = ref('');
+const isLoading = ref(false);
 
-function selected() {
-  selection.value.push(question_length.value, level.value, question_type.value);
-  store.commit("getData", selection.value);
+const isValidated = computed(() =>
+  questionType.value !== '' &&
+  Number(questionLength.value) >= 5 &&
+  difficultyLevel.value !== ''
+);
+
+function updateSelection() {
+  const selection = [questionLength.value, difficultyLevel.value, questionType.value];
+  store.commit("getData", selection);
 }
 
 async function startGame() {
-  if (!validated.value) return;
+  if (!isValidated.value) return;
 
-  loading5.value = true;
-  selection.value.push(question_length.value, level.value, question_type.value);
-  store.commit("getData", selection.value);
+  isLoading.value = true;
+  updateSelection();
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await fetch('https://jsonplaceholder.typicode.com/posts/1', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
     await router.push('/quiz');
   } catch (error) {
     console.error('Navigation error:', error);
   } finally {
-    loading5.value = false;
+    isLoading.value = false;
   }
 }
 </script>
